@@ -1,0 +1,15 @@
+{
+  "development": {
+    "username": "eddyodhiambo",
+    "password": "Supamodo@8678!",
+    "database": "MeetingsDB",
+    "host": "localhost",
+    "dialect": "mssql",
+    "port": 3801,
+    "dialectOptions": {
+      "options": {
+        "encrypt": true
+      }
+    }
+  }
+}
