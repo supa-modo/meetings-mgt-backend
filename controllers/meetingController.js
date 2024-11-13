@@ -1,12 +1,24 @@
 const { Meeting, ParticipationRecord } = require("../models");
 
 // Create a new meeting
+const moment = require("moment"); // Optionally, use a library like moment.js for date/time validation
+
 exports.createMeeting = async (req, res) => {
-  const { title, startDate, endDate, startTime, endTime, location, type } =
-    req.body;
+  const {
+    title,
+    description,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    location,
+    type,
+  } = req.body;
+
   try {
     const meeting = await Meeting.create({
       title,
+      description,
       startDate,
       endDate,
       startTime,
@@ -14,8 +26,9 @@ exports.createMeeting = async (req, res) => {
       location,
       type,
     });
-    res.status(201).json(meeting);
+    res.status(201).json({ message: "Meeting created successfully", meeting });
   } catch (error) {
+    console.error(error);
     res
       .status(500)
       .json({ error: "Error creating meeting", details: error.message });
@@ -38,9 +51,16 @@ exports.getAllMeetings = async (req, res) => {
 exports.getMeetingById = async (req, res) => {
   const { id } = req.params;
   try {
+    // Get a single meeting by ID with detailed association options
     const meeting = await Meeting.findByPk(id, {
-      include: ParticipationRecord, // Include participation records
+      include: {
+        model: ParticipationRecord,
+        attributes: ["participantName", "role"], // Customize fields if needed
+        where: { status: "active" }, // Example of adding a condition
+        required: false, // Include records even if no ParticipationRecord exists
+      },
     });
+
     if (!meeting) {
       return res.status(404).json({ error: "Meeting not found" });
     }
@@ -55,8 +75,16 @@ exports.getMeetingById = async (req, res) => {
 // Update a meeting
 exports.updateMeeting = async (req, res) => {
   const { id } = req.params;
-  const { title, startDate, endDate, startTime, endTime, location, type } =
-    req.body;
+  const {
+    title,
+    description,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    location,
+    type,
+  } = req.body;
   try {
     const meeting = await Meeting.findByPk(id);
     if (!meeting) {
@@ -64,6 +92,7 @@ exports.updateMeeting = async (req, res) => {
     }
     await meeting.update({
       title,
+      description,
       startDate,
       endDate,
       startTime,
