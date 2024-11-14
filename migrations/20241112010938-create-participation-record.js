@@ -21,6 +21,10 @@ module.exports = {
       signature: {
         type: Sequelize.TEXT
       },
+      meetingRole: { // New field added
+        type: Sequelize.STRING,
+        allowNull: true, // Change to false if required
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

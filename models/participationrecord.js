@@ -4,6 +4,11 @@ module.exports = (sequelize, DataTypes) => {
     attendeeId: DataTypes.INTEGER,
     date: DataTypes.DATEONLY,
     signature: DataTypes.TEXT,
+    meetingRole: {
+      // New field added
+      type: DataTypes.STRING,
+      allowNull: true, // Change to false if required
+    },
   });
 
   ParticipationRecord.associate = (models) => {

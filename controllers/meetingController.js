@@ -50,22 +50,27 @@ exports.getAllMeetings = async (req, res) => {
 // Get a single meeting by ID
 exports.getMeetingById = async (req, res) => {
   const { id } = req.params;
+  console.log("Meeting ID:", id); // Log the meeting ID
+
   try {
-    // Get a single meeting by ID with detailed association options
+    // Get a single meeting by ID without associations for debugging
     const meeting = await Meeting.findByPk(id, {
       include: {
         model: ParticipationRecord,
-        attributes: ["participantName", "role"], // Customize fields if needed
-        where: { status: "active" }, // Example of adding a condition
-        required: false, // Include records even if no ParticipationRecord exists
+        attributes: ["attendeeId", "date"],
+        required: false,
       },
     });
 
     if (!meeting) {
       return res.status(404).json({ error: "Meeting not found" });
     }
+
+    console.log("Meeting:", meeting); // Log the meeting object
+
     res.json(meeting);
   } catch (error) {
+    console.error("Error fetching meeting:", error); // Log the full error
     res
       .status(500)
       .json({ error: "Error fetching meeting", details: error.message });

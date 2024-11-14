@@ -7,5 +7,6 @@ router.get("/getAllAttendees", attendeeController.getAllAttendees);
 router.get("/getAttendee/:id", attendeeController.getAttendeeById);
 router.put("/updateAttendee/:id", attendeeController.updateAttendee);
 router.delete("/deleteAttendee/:id", attendeeController.deleteAttendee);
+router.get("/checkAttendee", attendeeController.checkAttendee);
 
 module.exports = router;

@@ -1,57 +1,155 @@
-const { ParticipationRecord, Meeting, Attendee } = require("../models");
+const { ParticipationRecord, Meeting, Attendee } = require("../models"); // Adjust model imports
 
-// Record an attendee's participation in a meeting
-exports.recordParticipation = async (req, res) => {
-  const { meetingId, attendeeId, date, signature } = req.body;
+// Add Attendee to Meeting
+async function recordParticipation(req, res) {
+  const { meetingId, attendeeId, meetingRole } = req.body;
+
   try {
+    // Ensure the meeting and attendee exist
+    const meeting = await Meeting.findByPk(meetingId);
+    const attendee = await Attendee.findByPk(attendeeId);
+    console.log(`recieved details : ${meeting}, ${attendee}`);
+
+    if (!meeting || !attendee) {
+      return res.status(200).json({ error: "Meeting or Attendee not found" });
+    }
+
+    // Create a new participation record
     const participationRecord = await ParticipationRecord.create({
       meetingId,
       attendeeId,
-      date,
-      signature,
+      date: new Date(), // Set current date or custom date
+      meetingRole, // Role assigned to the attendee for the meeting
     });
+
     res.status(201).json(participationRecord);
   } catch (error) {
+    console.error(error);
     res
       .status(500)
-      .json({ error: "Error recording participation", details: error.message });
+      .json({ error: "An error occurred while recording participation" });
   }
-};
+}
 
-// Get participation records for a specific meeting
-exports.getParticipationByMeeting = async (req, res) => {
+// Remove Attendee from Meeting
+async function removeParticipant(req, res) {
+  const { meetingId, attendeeId } = req.params;
+
+  try {
+    const participationRecord = await ParticipationRecord.findOne({
+      where: { meetingId, attendeeId },
+    });
+
+    if (!participationRecord) {
+      return res.status(404).json({ error: "Participation record not found" });
+    }
+
+    await participationRecord.destroy();
+    res
+      .status(200)
+      .json({ message: "Attendee removed from the meeting successfully" });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while removing the participant" });
+  }
+}
+
+// Get All Participants of a Specific Meeting
+async function getParticipationByMeeting(req, res) {
   const { meetingId } = req.params;
-  try {
-    const records = await ParticipationRecord.findAll({
-      where: { meetingId },
-      include: [Meeting, Attendee],
-    });
-    res.json(records);
-  } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Error fetching participation records",
-        details: error.message,
-      });
-  }
-};
 
-// Get participation records for a specific attendee
-exports.getParticipationByAttendee = async (req, res) => {
-  const { attendeeId } = req.params;
   try {
-    const records = await ParticipationRecord.findAll({
-      where: { attendeeId },
-      include: [Meeting, Attendee],
+    const participants = await ParticipationRecord.findAll({
+      where: { meetingId },
+      include: [
+        {
+          model: Attendee,
+          attributes: ["id", "name", "email"], // Adjust as needed
+        },
+        {
+          model: Meeting,
+          attributes: ["id", "title", "date"], // Adjust as needed
+        },
+      ],
     });
-    res.json(records);
+
+    res.status(200).json(participants);
   } catch (error) {
+    console.error(error);
     res
       .status(500)
-      .json({
-        error: "Error fetching participation records",
-        details: error.message,
-      });
+      .json({ error: "An error occurred while fetching participants" });
   }
+}
+
+// Get All Meetings an Attendee Has Participated In
+async function getParticipationByAttendee(req, res) {
+  const { attendeeId } = req.params;
+
+  try {
+    const meetings = await ParticipationRecord.findAll({
+      where: { attendeeId },
+      include: [
+        {
+          model: Meeting,
+          attributes: ["id", "title", "date"], // Adjust as needed
+        },
+        {
+          model: Attendee,
+          attributes: ["id", "name"], // Adjust as needed
+        },
+      ],
+    });
+
+    res.status(200).json(meetings);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching meetings" });
+  }
+}
+
+// Check if Participant Already Exists in the Meeting
+async function checkParticipantExists(req, res) {
+  const { attendeeId, meetingId } = req.query;
+
+  try {
+    // Find if a record exists with the given attendee name, email, and meeting ID
+    const existingParticipant = await ParticipationRecord.findOne({
+      where: { meetingId },
+      include: [
+        {
+          model: Attendee,
+          where: {
+            id: attendeeId,
+          },
+          attributes: [], // Only include for filtering, no additional fields needed
+        },
+      ],
+    });
+
+    if (existingParticipant) {
+      // Participant already exists
+      return res.status(200).json({ exists: true });
+    } else {
+      // Participant does not exist
+      return res.status(200).json({ exists: false });
+    }
+  } catch (error) {
+    console.error("Error checking participant:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while checking participant" });
+  }
+}
+
+module.exports = {
+  recordParticipation,
+  removeParticipant,
+  getParticipationByMeeting,
+  getParticipationByAttendee,
+  checkParticipantExists,
 };
