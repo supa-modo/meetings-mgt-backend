@@ -18,11 +18,11 @@ async function recordParticipation(req, res) {
     const participationRecord = await ParticipationRecord.create({
       meetingId,
       attendeeId,
-      date: new Date(), // Set current date or custom date
-      meetingRole, // Role assigned to the attendee for the meeting
+      date: new Date(),
+      meetingRole,
     });
 
-    res.status(201).json(participationRecord);
+    res.status(201).json({ success: true, participationRecord });
   } catch (error) {
     console.error(error);
     res
@@ -61,26 +61,30 @@ async function getParticipationByMeeting(req, res) {
   const { meetingId } = req.params;
 
   try {
-    const participants = await ParticipationRecord.findAll({
+    // Retrieve participation records for the specified meeting
+    const participationRecords = await ParticipationRecord.findAll({
       where: { meetingId },
       include: [
         {
           model: Attendee,
-          attributes: ["id", "name", "email"], // Adjust as needed
-        },
-        {
-          model: Meeting,
-          attributes: ["id", "title", "date"], // Adjust as needed
+          attributes: ["id", "name", "email", "phone", "organization"],
         },
       ],
     });
 
+    // Map records to include signature data if available
+    const participants = participationRecords.map((record) => ({
+      id: record.id,
+      Attendee: record.Attendee,
+      signatures: record.signatures, // Assuming `signatures` is an object within ParticipationRecord with day-specific entries
+    }));
+
     res.status(200).json(participants);
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while fetching participants" });
+    console.error("Error fetching participants:", error);
+    res.status(500).json({
+      error: "An error occurred while retrieving participants for the meeting.",
+    });
   }
 }
 
