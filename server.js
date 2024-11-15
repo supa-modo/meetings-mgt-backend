@@ -10,6 +10,7 @@ const participationRecordRoutes = require("./routes/participationRecordsRoutes")
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 // CORS middleware to allow cross-origin requests from your frontend
 app.use(

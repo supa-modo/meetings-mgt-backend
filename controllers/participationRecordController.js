@@ -1,34 +1,78 @@
-const { ParticipationRecord, Meeting, Attendee } = require("../models"); // Adjust model imports
+const { ParticipationRecord, Meeting, Attendee } = require("../models");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
+const moment = require("moment");
 
-// Add Attendee to Meeting
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const { meetingId, meetingDate } = req.body;
+    const folderPath = path.join(
+      __dirname,
+      `../uploads/signatures/${meetingId}_${moment(meetingDate).format(
+        "YYYY-MM-DD"
+      )}`
+    );
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+    cb(null, folderPath);
+  },
+  filename: (req, file, cb) => {
+    const { attendeeName } = req.body;
+    const timestamp = Date.now();
+    cb(null, `${attendeeName}_${timestamp}.png`);
+  },
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== "image/png") {
+      return cb(new Error("Only PNG files are allowed!"));
+    }
+    cb(null, true);
+  },
+}).single("signature");
+
+// Updated recordParticipation function
 async function recordParticipation(req, res) {
-  const { meetingId, attendeeId, meetingRole } = req.body;
-
-  try {
-    // Ensure the meeting and attendee exist
-    const meeting = await Meeting.findByPk(meetingId);
-    const attendee = await Attendee.findByPk(attendeeId);
-    console.log(`recieved details : ${meeting}, ${attendee}`);
-
-    if (!meeting || !attendee) {
-      return res.status(200).json({ error: "Meeting or Attendee not found" });
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
     }
 
-    // Create a new participation record
-    const participationRecord = await ParticipationRecord.create({
-      meetingId,
-      attendeeId,
-      date: new Date(),
-      meetingRole,
-    });
+    console.log("Form data received:", req.body);
+    const { meetingId, attendeeId, meetingRole } = req.body;
+    const signatureFileName = req.file?.filename;
 
-    res.status(201).json({ success: true, participationRecord });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while recording participation" });
-  }
+    try {
+      // Ensuring the meeting and attendee exist
+      const meeting = await Meeting.findByPk(meetingId);
+      const attendee = await Attendee.findByPk(attendeeId);
+
+      if (!meeting || !attendee) {
+        return res.status(400).json({ error: "Meeting or Attendee not found" });
+      }
+
+      // Creating a new participation record
+      const participationRecord = await ParticipationRecord.create({
+        meetingId,
+        attendeeId,
+        date: new Date(),
+        meetingRole,
+        signature: signatureFileName,
+      });
+
+      res.status(201).json({ success: true, participationRecord });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while recording participation" });
+    }
+  });
 }
 
 // Remove Attendee from Meeting
@@ -152,6 +196,7 @@ async function checkParticipantExists(req, res) {
 
 module.exports = {
   recordParticipation,
+  upload,
   removeParticipant,
   getParticipationByMeeting,
   getParticipationByAttendee,
