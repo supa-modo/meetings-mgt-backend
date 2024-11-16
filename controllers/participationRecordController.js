@@ -1,98 +1,3 @@
-// const { ParticipationRecord, Meeting, Attendee } = require("../models");
-// const fs = require("fs");
-// const path = require("path");
-// const moment = require("moment");
-
-// // Function to decode Base64 and save as a PNG
-// function saveBase64Image(base64String, folderPath, fileName) {
-//   const base64Data = base64String.replace(/^data:image\/png;base64,/, "");
-//   const filePath = path.join(folderPath, fileName);
-
-//   // Ensure the folder exists
-//   if (!fs.existsSync(folderPath)) {
-//     fs.mkdirSync(folderPath, { recursive: true });
-//   }
-
-//   // Write the file
-//   fs.writeFileSync(filePath, base64Data, "base64");
-//   return filePath;
-// }
-
-// let meetingID = "";
-// let meetingRole2 = "";
-
-// async function recordParticipation(req, res) {
-//   try {
-//     const {
-//       name,
-//       meetingId,
-//       meetingDate,
-//       meetingRole,
-//       signature, // Base64 string
-//     } = req.body;
-//     console.log("Form data received 2:", req.body);
-
-//     meetingID = req.body.meetingId;
-//     meetingRole2 = req.body.meetingRole;
-//     let name2 = req.body.name;
-//     let email2 = req.body.email;
-//     console.log("Meeting ID:", meetingID);
-//     console.log("Meeting Role:", meetingRole2);
-
-//     // Ensure the required data is available
-//     if (!meetingID || !meetingRole2) {
-//       return res.status(400).json({ error: "Missing required fields" });
-//     }
-
-//     // Retrieve the attendee ID using name and email
-//     const attendeeFind = await Attendee.findOne({
-//       where: { name: name2, email: email2 },
-//     });
-//     if (!attendeeFind) {
-//       return res
-//         .status(404)
-//         .json({ error: "Attendee not found with the provided name and email" });
-//     }
-
-//     const attendeeID = attendeeFind.id;
-//     console.log("Attendee ID:", attendeeID);
-
-//     // Ensure the meeting and attendee exist
-//     const meeting = await Meeting.findByPk(meetingId);
-//     const attendee = await Attendee.findByPk(attendeeID);
-
-//     if (!meeting || !attendee) {
-//       return res.status(404).json({ error: "Meeting or Attendee not found" });
-//     }
-
-//     // Save the Base64 signature as an image
-//     const folderPath = path.join(
-//       __dirname,
-//       `../uploads/signatures/${meetingId}_${moment(meetingDate).format(
-//         "YYYY-MM-DD"
-//       )}`
-//     );
-//     const signatureFileName = `${name}_${Date.now()}.png`;
-//     saveBase64Image(signature, folderPath, signatureFileName);
-
-//     // Create the participation record
-//     const participationRecord = await ParticipationRecord.create({
-//       meetingId: meetingID,
-//       attendeeId: attendeeID,
-//       date: new Date(),
-//       meetingRole: meetingRole2,
-//       signature: signatureFileName,
-//     });
-
-//     res.status(201).json({ success: true, participationRecord });
-//   } catch (error) {
-//     console.error("Error recording participation:", error);
-//     res
-//       .status(500)
-//       .json({ error: "An error occurred while recording participation" });
-//   }
-// }
-
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -121,6 +26,7 @@ const storage = multer.diskStorage({
     // Naming the signature file with the participant's name and current timestamp
     const signatureFileName = `${req.body.name}_${Date.now()}.png`;
     cb(null, signatureFileName); // Save as PNG
+    console.log(Date.now());
   },
 });
 
