@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   recordParticipation,
-  // upload,
+  upload,
   removeParticipant,
   getParticipationByMeeting,
   getParticipationByAttendee,
@@ -13,7 +13,11 @@ const {
 
 // POST /api/participation/recordParticipation
 // Add attendee to a meeting
-router.post("/recordParticipation", recordParticipation);
+router.post(
+  "/recordParticipation",
+  upload.single("signature"),
+  recordParticipation
+);
 
 // DELETE /api/participation/removeParticipant/:meetingId/:attendeeId
 // Remove attendee from a meeting
@@ -21,7 +25,10 @@ router.delete("/removeParticipant/:meetingId/:attendeeId", removeParticipant);
 
 // GET /api/participation/getParticipationByMeeting/:meetingId
 // Get all participants for a specific meeting
-router.get("/getParticipationByMeeting/:meetingId/:meetingDate", getParticipationByMeeting);
+router.get(
+  "/getParticipationByMeeting/:meetingId/:meetingDate",
+  getParticipationByMeeting
+);
 
 // GET /api/participation/getParticipationByAttendee/:attendeeId
 // Get all meetings an attendee has participated in
