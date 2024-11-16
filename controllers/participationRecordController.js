@@ -1,117 +1,96 @@
 const { ParticipationRecord, Meeting, Attendee } = require("../models");
 const fs = require("fs");
 const path = require("path");
-const multer = require("multer");
 const moment = require("moment");
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const { meetingId, meetingDate } = req.body;
-    if (!meetingId || !meetingDate) {
-      return cb(new Error("Meeting ID and date are required"));
+// Function to decode Base64 and save as a PNG
+function saveBase64Image(base64String, folderPath, fileName) {
+  const base64Data = base64String.replace(/^data:image\/png;base64,/, "");
+  const filePath = path.join(folderPath, fileName);
+
+  // Ensure the folder exists
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true });
+  }
+
+  // Write the file
+  fs.writeFileSync(filePath, base64Data, "base64");
+  return filePath;
+}
+
+let meetingID = "";
+let meetingRole2 = "";
+
+async function recordParticipation(req, res) {
+  try {
+    const {
+      name,
+      meetingId,
+      meetingDate,
+      meetingRole,
+      signature, // Base64 string
+    } = req.body;
+    console.log("Form data received 2:", req.body);
+
+    meetingID = req.body.meetingId;
+    meetingRole2 = req.body.meetingRole;
+    let name2 = req.body.name;
+    let email2 = req.body.email;
+    console.log("Meeting ID:", meetingID);
+    console.log("Meeting Role:", meetingRole2);
+
+    // Ensure the required data is available
+    if (!meetingID || !meetingRole2) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Retrieve the attendee ID using name and email
+    const attendeeFind = await Attendee.findOne({
+      where: { name: name2, email: email2 },
+    });
+    if (!attendeeFind) {
+      return res
+        .status(404)
+        .json({ error: "Attendee not found with the provided name and email" });
+    }
+
+    const attendeeID = attendeeFind.id;
+    console.log("Attendee ID:", attendeeID);
+
+    // Ensure the meeting and attendee exist
+    const meeting = await Meeting.findByPk(meetingId);
+    const attendee = await Attendee.findByPk(attendeeID);
+
+    if (!meeting || !attendee) {
+      return res.status(404).json({ error: "Meeting or Attendee not found" });
+    }
+
+    // Save the Base64 signature as an image
     const folderPath = path.join(
       __dirname,
       `../uploads/signatures/${meetingId}_${moment(meetingDate).format(
         "YYYY-MM-DD"
       )}`
     );
+    const signatureFileName = `${name}_${Date.now()}.png`;
+    saveBase64Image(signature, folderPath, signatureFileName);
 
-    // Ensure the folder exists, otherwise create it
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true });
-    }
+    // Create the participation record
+    const participationRecord = await ParticipationRecord.create({
+      meetingId: meetingID,
+      attendeeId: attendeeID,
+      date: new Date(),
+      meetingRole: meetingRole2,
+      signature: signatureFileName,
+    });
 
-    cb(null, folderPath);
-  },
-  filename: (req, file, cb) => {
-    const { attendeeName } = req.body;
-    if (!attendeeName) {
-      return cb(new Error("Attendee name is required"));
-    }
-    const timestamp = Date.now();
-    cb(null, `${attendeeName}_${timestamp}.png`);
-  },
-});
-
-let meetingID = "";
-let attendeeID = "";
-let meetingRole2 = "";
-
-// Configure multer instance
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype !== "image/png") {
-      return cb(new Error("Only PNG files are allowed!"));
-    }
-    cb(null, true);
-    meetingID = req.body.meetingId;
-    meetingRole2 = req.body.meetingRole;
-    attendeeID = req.body.attendeeId;
-    console.log("Meeting ID:", meetingID);
-    console.log("Meeting Role:", meetingRole2);
-    console.log("Attendee ID:", attendeeID);
-    console.log("File uploaded:", file);
-  },
-}).single("signature");
-
-// Updated recordParticipation function
-async function recordParticipation(req, res) {
-  console.log("Form data received 2:", req.body);
-  // Ensure the content type is correct for file uploads
-  if (!req.is("multipart/form-data")) {
-    return res
-      .status(400)
-      .json({ error: "Content-Type must be multipart/form-data" });
+    res.status(201).json({ success: true, participationRecord });
+  } catch (error) {
+    console.error("Error recording participation:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while recording participation" });
   }
-
-  // Process the file upload
-  upload(req, res, async (err) => {
-    // if (err) {
-    //   console.error("Error during file upload:", err);
-    //   return res.status(400).json({ error: err.message });
-    // }
-
-    const signatureFileName = req.file?.filename;
-
-    console.log(meetingID, attendeeID, meetingRole2, signatureFileName);
-
-    // Ensure the required data is available
-    if (!meetingID || !attendeeID || !meetingRole2 || !signatureFileName) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    try {
-      // Ensure the meeting and attendee exist
-      const meeting = await Meeting.findByPk(meetingID);
-      console.log(meeting);
-      const attendee = await Attendee.findByPk(attendeeID);
-      console.log(attendee);
-
-      if (!meeting || !attendee) {
-        return res.status(404).json({ error: "Meeting or Attendee not found" });
-      }
-
-      // Create the participation record
-      const participationRecord = await ParticipationRecord.create({
-        meetingId: meetingID,
-        attendeeId: attendeeID,
-        date: new Date(),
-        meetingRole: meetingRole2,
-        signature: signatureFileName,
-      });
-
-      res.status(201).json({ success: true, participationRecord });
-    } catch (error) {
-      console.error("Database error:", error);
-      res
-        .status(500)
-        .json({ error: "An error occurred while recording participation" });
-    }
-  });
 }
 
 // Remove Attendee from Meeting
@@ -141,7 +120,7 @@ async function removeParticipant(req, res) {
 
 // Get All Participants of a Specific Meeting
 async function getParticipationByMeeting(req, res) {
-  const { meetingId } = req.params;
+  const { meetingId, meetingDate } = req.params;
 
   try {
     // Retrieve participation records for the specified meeting
@@ -155,12 +134,28 @@ async function getParticipationByMeeting(req, res) {
       ],
     });
 
-    // Map records to include signature data if available
-    const participants = participationRecords.map((record) => ({
-      id: record.id,
-      Attendee: record.Attendee,
-      signatures: record.signatures, // Assuming `signatures` is an object within ParticipationRecord with day-specific entries
-    }));
+    // Define the base folder for signatures
+    const baseFolderPath = path.join(
+      __dirname,
+      `../uploads/signatures/${meetingId}_${meetingDate}`
+    );
+    console.log(baseFolderPath);
+
+    // Map records to include the full path to signature images
+    const participants = participationRecords.map((record) => {
+      // Construct the full path for the signature if it exists
+      const signaturePath = record.signature
+        ? path.join(baseFolderPath, record.signature)
+        : null;
+
+      return {
+        id: record.id,
+        Attendee: record.Attendee,
+        signature: signaturePath
+          ? `/uploads/signatures/${meetingId}_${meetingDate}/${record.signature}`
+          : null,
+      };
+    });
 
     res.status(200).json(participants);
   } catch (error) {
@@ -235,7 +230,7 @@ async function checkParticipantExists(req, res) {
 
 module.exports = {
   recordParticipation,
-  upload,
+  // upload,
   removeParticipant,
   getParticipationByMeeting,
   getParticipationByAttendee,

@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 const app = express();
 const PORT_URL = process.env.PORT || 3500;
@@ -11,6 +12,9 @@ const participationRecordRoutes = require("./routes/participationRecordsRoutes")
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+
+// Serve static files from the "public" folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // CORS middleware to allow cross-origin requests from your frontend
 app.use(
