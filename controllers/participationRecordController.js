@@ -237,6 +237,25 @@ async function checkParticipantExists(req, res) {
   }
 }
 
+// Count Participants for a Specific Meeting
+async function countParticipantsByMeeting(req, res) {
+  const { meetingId } = req.params;
+
+  try {
+    // Count participation records for the specified meeting
+    const participantCount = await ParticipationRecord.count({
+      where: { meetingId },
+    });
+
+    res.status(200).json({ meetingId, participantCount });
+  } catch (error) {
+    console.error("Error counting participants:", error);
+    res.status(500).json({
+      error: "An error occurred while counting participants for the meeting.",
+    });
+  }
+}
+
 module.exports = {
   recordParticipation,
   upload,
@@ -244,4 +263,5 @@ module.exports = {
   getParticipationByMeeting,
   getParticipationByAttendee,
   checkParticipantExists,
+  countParticipantsByMeeting,
 };

@@ -7,6 +7,7 @@ const {
   getParticipationByMeeting,
   getParticipationByAttendee,
   checkParticipantExists,
+  countParticipantsByMeeting,
 } = require("../controllers/participationRecordController");
 
 // # Participation Records
@@ -36,6 +37,9 @@ router.get(
   "/getParticipationByAttendee/:attendeeId",
   getParticipationByAttendee
 );
+
+// GET /api/participation/countParticipantsByMeeting/:meetingId
+router.get("/count/:meetingId", countParticipantsByMeeting);
 
 // route to check if participant already exists
 router.get("/checkParticipant", checkParticipantExists);
