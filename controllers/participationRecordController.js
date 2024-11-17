@@ -175,24 +175,30 @@ async function getParticipationByMeeting(req, res) {
   }
 }
 
-// Get All Meetings an Attendee Has Participated In
 async function getParticipationByAttendee(req, res) {
   const { attendeeId } = req.params;
 
   try {
-    const meetings = await ParticipationRecord.findAll({
+    const participationRecords = await ParticipationRecord.findAll({
       where: { attendeeId },
       include: [
         {
           model: Meeting,
-          attributes: ["id", "title", "date"], // Adjust as needed
-        },
-        {
-          model: Attendee,
-          attributes: ["id", "name"], // Adjust as needed
+          attributes: [
+            "id",
+            "title",
+            "startDate",
+            "endDate",
+            "startTime",
+            "endTime",
+            "location",
+          ],
         },
       ],
     });
+
+    // Extract meeting details
+    const meetings = participationRecords.map((record) => record.Meeting);
 
     res.status(200).json(meetings);
   } catch (error) {
