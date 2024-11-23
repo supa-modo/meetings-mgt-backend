@@ -1,4 +1,5 @@
 const { Meeting, ParticipationRecord } = require("../models");
+const { Op } = require("sequelize");
 
 // Create a new meeting
 const moment = require("moment"); // Optionally, use a library like moment.js for date/time validation
@@ -44,6 +45,28 @@ exports.getAllMeetings = async (req, res) => {
     res
       .status(500)
       .json({ error: "Error fetching meetings", details: error.message });
+  }
+};
+
+// Search for meetings
+
+exports.searchMeetings = async (req, res) => {
+  const { search } = req.query; // Use `search` from query string
+  try {
+    const meetings = await Meeting.findAll({
+      where: {
+        [Op.or]: [
+          { title: { [Op.like]: `%${search}%` } },
+          { type: { [Op.like]: `%${search}%` } },
+        ],
+      },
+    });
+    res.json(meetings);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error searching for meetings", details: error.message });
+    console.error("Error searching attendees:", error);
   }
 };
 

@@ -1,4 +1,5 @@
 const { Attendee, ParticipationRecord } = require("../models");
+const { Op } = require("sequelize");
 
 // Create a new attendee
 exports.createAttendee = async (req, res) => {
@@ -29,6 +30,28 @@ exports.getAllAttendees = async (req, res) => {
     res
       .status(500)
       .json({ error: "Error fetching attendees", details: error.message });
+  }
+};
+
+// Search for attendees
+exports.searchAttendees = async (req, res) => {
+  const { search } = req.query;
+  try {
+    const attendees = await Attendee.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+          { organization: { [Op.like]: `%${search}%` } },
+        ],
+      },
+    });
+    res.json(attendees);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error searching for attendees", details: error.message });
+    console.error("Error searching attendees:", error);
   }
 };
 
